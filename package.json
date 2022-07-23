@@ -9,7 +9,11 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "three": "^0.142.0",
     "typescript": "^4.6.4",
     "vite": "^3.0.0"
+  },
+  "peerDependencies": {
+    "three": "^0.142.0"
   }
 }
