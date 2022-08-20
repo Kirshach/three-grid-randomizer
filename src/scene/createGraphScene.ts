@@ -6,6 +6,6 @@ export const createGraphScene = (
   dimensions: Dimensions
 ): GraphScene => ({
   ...dimensions,
-  centre: createCentreNode(dimensions),
+  centre: createCentreNode(),
   nodes: new Map(),
 });

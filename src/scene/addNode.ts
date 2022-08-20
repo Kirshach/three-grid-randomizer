@@ -9,28 +9,58 @@ const axisToDimension: Record<Axis, keyof Dimensions> = {
   z: 'depth',
 };
 
-export const addNode = (scene: GraphScene, node: SceneNode) => {
-  for (const axis of axes) {
-    // if items is outside of the scene, throw an error
-    // TODO: Add width + padding to calculations too
-    if (Math.abs(node.position[axis]) > scene[axisToDimension[axis]] / 2) { }
+export const addNode = (scene: GraphScene, ...nodes: SceneNode[]) => {
+  for (const node of nodes) {
+    for (const axis of axes) {
+      // if item is outside of the scene, throw an error
+      /* 
+        TODO: Remember that object's origin is not always in the centre.
+              That case should be supported in the future
+      */
+      if (
+        Math.abs(node.position[axis]) + node.dimensions[axisToDimension[axis]] / 2
+        >
+        scene[axisToDimension[axis]] / 2
+      ) {
+        console.error(
+          'Cannot add a node' +
+          node.id +
+          'to the scene' +
+          JSON.stringify({ height: scene.height, width: scene.width }) +
+          'because at least part of it is outside of the scene'
+        );
+        return;
+      }
 
-    let prevNode = scene.centre;
+      const forwardDirection: Direction = node.position[axis] > 0 ? `+${axis}` : `-${axis}`;
+      const backDirection: Direction = node.position[axis] > 0 ? `-${axis}` : `+${axis}`;
 
-    const direction: Direction =
-      isFurtherAway(node, scene.centre, `+${axis}`) ? `+${axis}` : `-${axis}`;
+      let prevNode = scene.centre;
+      let nextAdjacentNode: SceneNode | null = prevNode.adjacentNodes[forwardDirection];
 
-    // while new node is still further away in a given direction
-    while (isFurtherAway(node, prevNode, direction)) {
-      const nextAdjacentNode: SceneNode | null = prevNode.adjacentNodes[direction];
-      if (nextAdjacentNode) prevNode = nextAdjacentNode;
-      else break;
+      // while new node is still further away in a given direction
+      while (nextAdjacentNode && isFurtherAway(node, nextAdjacentNode, forwardDirection)) {
+        prevNode = nextAdjacentNode;
+        nextAdjacentNode = nextAdjacentNode.adjacentNodes[forwardDirection];
+      }
+
+      const nextNode = prevNode.adjacentNodes[forwardDirection];
+      // setting forward links
+      prevNode.adjacentNodes[forwardDirection] = node;
+      node.adjacentNodes[forwardDirection] = nextNode;
+
+      // setting backward links
+      if (nextNode) nextNode.adjacentNodes[backDirection] = node;
+      node.adjacentNodes[backDirection] = prevNode;
+
+      if (node.id === 'leftmostZ' && axis === 'x') {
+        console.log({
+          prevNode: prevNode.id,
+          nextNode: nextNode?.id,
+        });
+      }
+
     }
-
-    const nextNode = prevNode.adjacentNodes[direction];
-    prevNode.adjacentNodes[direction] = node;
-    node.adjacentNodes[direction] = nextNode;
-
     scene.nodes.set(node.id, node);
   }
 };
